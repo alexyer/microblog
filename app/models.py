@@ -5,7 +5,9 @@ __author__ = 'Olexander Yermakov'
 __email__ = 'mannavard1611@gmail.com'
 
 
+from app import app
 from app import db
+import flask.ext.whooshalchemy as whooshalchemy
 from hashlib import md5
 
 
@@ -82,6 +84,8 @@ class User(db.Model):
 
 
 class Post(db.Model):
+    __searchable__ = ['body']
+
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.String(140))
     timestamp = db.Column(db.DateTime)
@@ -89,3 +93,6 @@ class Post(db.Model):
 
     def __repr__(self):
         return '<Post {body}>'.format(body=self.body)
+
+
+whooshalchemy.whoosh_index(app, Post)

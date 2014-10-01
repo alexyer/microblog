@@ -10,6 +10,8 @@ from app import db
 from app import lm
 from app import oid
 
+from datetime import datetime
+
 from flask import flash
 from flask import g
 from flask import redirect
@@ -25,9 +27,10 @@ from flask.ext.login import logout_user
 
 from forms import EditForm
 from forms import LoginForm
-import models
+from forms import SearchForm
 
-from datetime import datetime
+import config
+import models
 
 
 @app.route('/')
@@ -99,6 +102,7 @@ def before_request():
         g.user.last_seen = datetime.utcnow()
         db.session.add(g.user)
         db.session.commit()
+        g.search_form = SearchForm()
 
 
 @app.route('/logout')
@@ -182,6 +186,23 @@ def unfollow(nickname):
     db.session.commit()
     flash('You have stopped following {nickname}.'.format(nickname=nickname))
     return redirect(url_for('user', nickname = nickname))
+
+
+@app.route('/search', methods=['POST'])
+@login_required
+def search():
+    if not g.search_form.validate_on_submit():
+        return redirect(url_for('index'))
+    return redirect(url_for('search_results', query=g.search_form.data))
+
+
+@app.route('/search_results/<query>')
+@login_required
+def search_results(query):
+    results = models.Post.query.whoosh_search(query, config.MAX_SEARCH_RESULTS).all()
+    return render_template('search_results.html',
+                           query=query,
+                           results=results)
 
 
 @lm.user_loader

@@ -45,3 +45,7 @@ class EditForm(Form):
             return False
 
         return True
+
+
+class SearchForm(Form):
+    search = TextField('search', validators=[Required()])
