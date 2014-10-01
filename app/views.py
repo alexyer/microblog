@@ -74,6 +74,7 @@ def after_login(resp):
         nickname = resp.nickname
         if not nickname:
             nickname = resp.email.split('@')[0]
+        nickname = User.make_unique_nickname(nickname)
         user = models.User(nickname=nickname, email=resp.email, role=models.ROLE_USER)
         db.session.add(user)
         db.session.commit()
@@ -121,7 +122,7 @@ def user(nickname):
 @app.route('/edit', methods=['GET', 'POST'])
 @login_required
 def edit():
-    form = EditForm()
+    form = EditForm(g.user.nickname)
     if form.validate_on_submit():
         g.user.nickname = form.nickname.data
         g.user.about_me = form.about_me.data
