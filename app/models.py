@@ -45,6 +45,9 @@ class User(db.Model):
     def get_id(self):
         return self.id
 
+    def is_anonymous(self):
+        return False
+
     def avatar(self, size):
         return 'http://www.gravatar.com/avatar/' + md5(self.email).hexdigest() + '?=mm&s=' + str(size) 
 

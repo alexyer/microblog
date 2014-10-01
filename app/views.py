@@ -74,9 +74,13 @@ def after_login(resp):
         nickname = resp.nickname
         if not nickname:
             nickname = resp.email.split('@')[0]
-        nickname = User.make_unique_nickname(nickname)
+        nickname = models.User.make_unique_nickname(nickname)
         user = models.User(nickname=nickname, email=resp.email, role=models.ROLE_USER)
+
         db.session.add(user)
+        db.session.commit()
+
+        db.session.add(user.follow(user))
         db.session.commit()
 
     if 'remember_me' in session:
@@ -135,6 +139,49 @@ def edit():
         form.about_me.data = g.user.about_me
     return render_template('edit.html',
                            form=form)
+
+
+@app.route('/follow/<nickname>')
+@login_required
+def follow(nickname):
+    user = models.User.query.filter_by(nickname=nickname).first()
+    if not user:
+        flash('User {nickname} not found'.format(nickname=nickname))
+        return redirect(url_for('index'))
+    elif user == g.user:
+        flask('You can\'t follow yourself')
+        return redirect(url_for('user', nickname=nickname))
+
+    u = g.user.follow(user)
+    if not u:
+        flash('Can\'t follow {nickname}'.format(nickname=nickname))
+        return redirect(url_for('user', nickname=nickname))
+
+    db.session.add(u)
+    db.session.commit()
+
+    flash('You are now following {nickname}'.format(nickname=nickname))
+    return redirect(url_for('user', nickname=nickname))
+
+
+@app.route('/unfollow/<nickname>')
+@login_required
+def unfollow(nickname):
+    user = models.User.query.filter_by(nickname = nickname).first()
+    if not user:
+        flash('User {nickname} not found.'.format(nickname=nickname))
+        return redirect(url_for('index'))
+    if user == g.user:
+        flash('You can\'t unfollow yourself!')
+        return redirect(url_for('user', nickname = nickname))
+    u = g.user.unfollow(user)
+    if not u:
+        flash('Cannot unfollow {nickname}.'.format(nickname=nickname))
+        return redirect(url_for('user', nickname = nickname))
+    db.session.add(u)
+    db.session.commit()
+    flash('You have stopped following {nickname}.'.format(nickname=nickname))
+    return redirect(url_for('user', nickname = nickname))
 
 
 @lm.user_loader
