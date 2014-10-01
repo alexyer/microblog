@@ -28,24 +28,32 @@ from flask.ext.login import logout_user
 from forms import EditForm
 from forms import LoginForm
 from forms import SearchForm
+from forms import PostForm
 
 import config
 import models
 
 
-@app.route('/')
-@app.route('/index')
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/index', methods=['GET', 'POST'])
+@app.route('/index/<int:page>', methods=['GET', 'POST'])
 @login_required
-def index():
+def index(page=1):
     user = g.user
-    posts = [{'author': {'nickname': 'Tommy'},
-              'body': 'wow'},
-             {'author': {'nickname': 'Mick'},
-              'body': 'yep'}]
+    form = PostForm()
+
+    if form.validate_on_submit():
+        post = models.Post(body=form.post.data, timestamp=datetime.utcnow(), author=g.user)
+        db.session.add(post)
+        db.session.commit()
+        flash('Your post is now live!')
+        return redirect(url_for('index'))
+
+    posts = g.user.followed_posts().paginate(page, config.POSTS_PER_PAGE)
 
     return render_template('index.html',
                            title='Home',
-                           user=user,
+                           form=form,
                            posts=posts)
 
 
@@ -112,15 +120,15 @@ def logout():
 
 
 @app.route('/user/<nickname>')
-def user(nickname):
+@app.route('/user/<nickname>/<int:page>')
+def user(nickname, page=1):
     user = models.User.query.filter_by(nickname=nickname).first()
 
     if not user:
         flash('User {nick} not found.'.format(nick=nickname))
         return redirect(url_for('index'))
 
-    posts = [{'author': user, 'body': 'Test'},
-             {'author': user, 'body': 'Test2'}]
+    posts = user.posts.paginate(page, config.POSTS_PER_PAGE, False)
 
     return render_template('user.html',
                            user=user,
