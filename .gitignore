@@ -59,6 +59,6 @@ Session.vim
 .netrwhist
 *~
 
-app.db
+*.db
 db_repository
 app/tmp/*
